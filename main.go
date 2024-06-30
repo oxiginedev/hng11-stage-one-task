@@ -40,7 +40,10 @@ func HandleIncomingRequest(w http.ResponseWriter, r *http.Request) {
 
 	res.ClientIP = ip
 
-	ip2l, err := GetLocationFromIP("1C264A5D5F7B6E426A3B6EB088A3CDC4", ip)
+	// Get api key from environment
+	ip2key := os.Getenv("HNG_IP2LOCATION_KEY")
+
+	ip2l, err := GetLocationFromIP(ip2key, ip)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("Something went wrong"))
