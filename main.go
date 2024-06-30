@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Response struct {
@@ -15,6 +17,11 @@ type Response struct {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("failed to load env variables")
+	}
+
 	port := os.Getenv("HNG_PORT")
 	if port == "" {
 		port = "9000"
@@ -36,6 +43,7 @@ func HandleIncomingRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("Something went wrong"))
+		return
 	}
 
 	res.ClientIP = ip
@@ -46,7 +54,8 @@ func HandleIncomingRequest(w http.ResponseWriter, r *http.Request) {
 	ip2l, err := GetLocationFromIP(ip2key, ip)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("Something went wrong"))
+		_, _ = w.Write([]byte(err.Error()))
+		return
 	}
 
 	res.Location = ip2l.City
@@ -56,8 +65,10 @@ func HandleIncomingRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("Something went wrong"))
+		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(data)
 }

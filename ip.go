@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Get the IP address for a given request
+// GetIpAddress parses the ip for a given request
 func GetIpAddress(r *http.Request) (string, error) {
 	ips := r.Header.Get("X-Forwarded-For")
 	splitIps := strings.Split(ips, ",")
