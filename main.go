@@ -41,8 +41,7 @@ func HandleIncomingRequest(w http.ResponseWriter, r *http.Request) {
 
 	ip, err := GetIpAddress(r)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("Something went wrong"))
+		respond(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -53,22 +52,27 @@ func HandleIncomingRequest(w http.ResponseWriter, r *http.Request) {
 
 	ip2l, err := GetLocationFromIP(ip2key, ip)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(err.Error()))
+		respond(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	res.Location = ip2l.City
-	res.Greeting = fmt.Sprintf("Hello, %s!, the temperature is 11 degrees Celsius in %s", name, ip2l.City)
 
-	data, err := json.Marshal(res)
+	weather, err := GetWeather(ip2l.Latitude, ip2l.Longitude)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("Something went wrong"))
+		respond(w, http.StatusInternalServerError, "Could not fetch weather details")
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	res.Greeting = fmt.Sprintf("Hello, %s!, the temperature is %.2f degrees Celsius in %s",
+		name, weather.Current.Temperature, ip2l.City)
+
+	_ = respond(w, http.StatusOK, res)
+}
+
+func respond(w http.ResponseWriter, code int, v interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(data)
+	w.WriteHeader(code)
+
+	return json.NewEncoder(w).Encode(v)
 }
