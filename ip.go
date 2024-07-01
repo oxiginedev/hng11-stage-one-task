@@ -13,7 +13,7 @@ func GetIpAddress(r *http.Request) (string, error) {
 	splitIps := strings.Split(ips, ",")
 
 	if len(splitIps) > 0 {
-		netIp := net.ParseIP(splitIps[len(splitIps)-1])
+		netIp := net.ParseIP(splitIps[0])
 		if netIp != nil {
 			return netIp.String(), nil
 		}
