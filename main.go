@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+type M map[string]interface{}
+
 type Response struct {
 	ClientIP string `json:"client_ip"`
 	Location string `json:"location"`
@@ -70,36 +72,42 @@ func HandleIncomingRequest(w http.ResponseWriter, r *http.Request) {
 
 	ip, err := GetIpAddress(r)
 	if err != nil {
-		respond(w, http.StatusInternalServerError, err.Error())
+		respond(w, http.StatusInternalServerError, M{"message": err.Error()})
 		return
 	}
 
 	res.ClientIP = ip
 
 	// Get api key from environment
-	ip2key, ok := os.LookupEnv("IP2LOCATION_KEY")
+	wk, ok := os.LookupEnv("WEATHERAPI_KEY")
 	if !ok {
-		log.Println("IP2LOCATION_KEY must be set")
-		respond(w, http.StatusInternalServerError, map[string]string{"message": "something is off"})
+		log.Println("WEATHERAPI_KEY must be set")
+		respond(w, http.StatusInternalServerError, M{"message": "Weather API key not set"})
 		return
 	}
 
-	ip2l, err := GetLocationFromIP(ip2key, ip)
+	wc, err := NewWeatherAPIClient(wk)
 	if err != nil {
-		respond(w, http.StatusInternalServerError, err.Error())
+		respond(w, http.StatusInternalServerError, M{"message": err.Error()})
 		return
 	}
 
-	res.Location = ip2l.City
-
-	weather, err := GetWeather(ip2l.Latitude, ip2l.Longitude)
+	l, err := wc.GetLocationFromIP(ip)
 	if err != nil {
-		respond(w, http.StatusInternalServerError, "Could not fetch weather details")
+		respond(w, http.StatusInternalServerError, M{"message": err.Error()})
+		return
+	}
+
+	res.Location = l.City
+
+	cw, err := wc.GetCurrentWeather(l.Latitude, l.Longitude)
+	if err != nil {
+		respond(w, http.StatusInternalServerError, M{"message": err.Error()})
 		return
 	}
 
 	res.Greeting = fmt.Sprintf("Hello, %s!, the temperature is %.2f degrees Celsius in %s",
-		name, weather.Current.Temperature, ip2l.City)
+		name, cw.Current.TempC, l.City)
 
 	_ = respond(w, http.StatusOK, res)
 }
