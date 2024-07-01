@@ -11,7 +11,7 @@ import (
 // GetIpAddress parses the ip for a given request
 func GetIpAddress(r *http.Request) (string, error) {
 	rip := r.Header.Get("X-Real-IP")
-	
+
 	netRip := net.ParseIP(rip)
 	if netRip != nil {
 		return netRip.String(), nil
@@ -19,7 +19,7 @@ func GetIpAddress(r *http.Request) (string, error) {
 
 	ips := r.Header.Get("X-Forwarded-For")
 	splitIps := strings.Split(ips, ",")
-	
+
 	if len(splitIps) > 0 {
 		netIp := net.ParseIP(splitIps[0])
 		if netIp != nil {
