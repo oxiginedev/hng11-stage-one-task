@@ -22,7 +22,7 @@ func main() {
 		log.Fatal("failed to load env variables")
 	}
 
-	port := os.Getenv("HNG_PORT")
+	port := os.Getenv("PORT")
 	if port == "" {
 		port = "9000"
 	}
@@ -48,7 +48,7 @@ func HandleIncomingRequest(w http.ResponseWriter, r *http.Request) {
 	res.ClientIP = ip
 
 	// Get api key from environment
-	ip2key := os.Getenv("HNG_IP2LOCATION_KEY")
+	ip2key := os.Getenv("IP2LOCATION_KEY")
 
 	ip2l, err := GetLocationFromIP(ip2key, ip)
 	if err != nil {
