@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -9,9 +10,16 @@ import (
 
 // GetIpAddress parses the ip for a given request
 func GetIpAddress(r *http.Request) (string, error) {
+	rip := r.Header.Get("X-Real-IP")
+	
+	netRip := net.ParseIP(rip)
+	if netRip != nil {
+		return netRip.String(), nil
+	}
+
 	ips := r.Header.Get("X-Forwarded-For")
 	splitIps := strings.Split(ips, ",")
-
+	
 	if len(splitIps) > 0 {
 		netIp := net.ParseIP(splitIps[0])
 		if netIp != nil {
@@ -19,7 +27,7 @@ func GetIpAddress(r *http.Request) (string, error) {
 		}
 	}
 
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	ip, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
 	if err != nil {
 		return "", err
 	}
