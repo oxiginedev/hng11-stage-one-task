@@ -45,7 +45,7 @@ func (w *WeatherAPIClient) GetLocationFromIP(ip string) (*IPLookupResponse, erro
 	p := new(IPLookupResponse)
 
 	r, err := http.NewRequest(http.MethodGet,
-		fmt.Sprintf("/%s?key=%s&q=%s", "ip.json", w.key, ip), nil)
+		fmt.Sprintf("%s/%s?key=%s&q=%s", apiEndpoint, "ip.json", w.key, ip), nil)
 	if err != nil {
 		return p, err
 	}
@@ -85,7 +85,7 @@ func (w *WeatherAPIClient) GetCurrentWeather(lat, lon float32) (*WeatherLookupRe
 	p := new(WeatherLookupResponse)
 
 	r, err := http.NewRequest(http.MethodGet,
-		fmt.Sprintf("/%s?key=%s&q=%f,%f", "current.json", w.key, lat, lon), nil)
+		fmt.Sprintf("%s/%s?key=%s&q=%f,%f", apiEndpoint, "current.json", w.key, lat, lon), nil)
 	if err != nil {
 		return p, err
 	}
