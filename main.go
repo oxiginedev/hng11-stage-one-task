@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/joho/godotenv"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 type Response struct {
@@ -17,20 +19,47 @@ type Response struct {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("failed to load env variables")
-	}
-
-	port := os.Getenv("PORT")
-	if port == "" {
+	port, ok := os.LookupEnv("PORT")
+	if !ok {
 		port = "9000"
 	}
 
-	http.HandleFunc("GET /api/hello", HandleIncomingRequest)
+	h := http.NewServeMux()
 
-	log.Println("Server started and listening on", port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+	h.HandleFunc("GET /api/hello", HandleIncomingRequest)
+
+	s := &http.Server{
+		Addr:              fmt.Sprintf(":%s", port),
+		Handler:           h,
+		ReadHeaderTimeout: time.Second * 2,
+		ReadTimeout:       time.Second * 15,
+		WriteTimeout:      time.Second * 15,
+	}
+
+	log.Printf("Listening on :%s...\n", port)
+
+	go func() {
+		err := s.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal("server failed to start")
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+
+	log.Println("server is attempting shutdown")
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	if err := s.Shutdown(ctx); err != nil {
+		log.Fatal("server failed to shutdown")
+	}
+
+	log.Println("server exited!")
 }
 
 func HandleIncomingRequest(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +77,12 @@ func HandleIncomingRequest(w http.ResponseWriter, r *http.Request) {
 	res.ClientIP = ip
 
 	// Get api key from environment
-	ip2key := os.Getenv("IP2LOCATION_KEY")
+	ip2key, ok := os.LookupEnv("IP2LOCATION_KEY")
+	if !ok {
+		log.Println("IP2LOCATION_KEY must be set")
+		respond(w, http.StatusInternalServerError, map[string]string{"message": "something is off"})
+		return
+	}
 
 	ip2l, err := GetLocationFromIP(ip2key, ip)
 	if err != nil {
